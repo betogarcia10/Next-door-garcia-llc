@@ -154,7 +154,7 @@ nav ul a:hover{background:var(--green-pale);color:var(--green)}
 .chip{
   background:var(--white);border:2px solid var(--ink);border-radius:100px;
   padding:6px 14px;font-size:0.78rem;font-weight:700;color:var(--ink);
-  display:flex;align-items:center;gap(6px);
+  display:flex;align-items:center;gap:6px;
 }
 .chip-icon{margin-right:5px}
 
@@ -208,6 +208,27 @@ nav ul a:hover{background:var(--green-pale);color:var(--green)}
   transition:transform 0.1s,box-shadow 0.1s;
 }
 .f-submit:hover{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink)}
+.f-submit:disabled{opacity:0.7;cursor:wait;transform:none}
+.form-success{
+  display:none;
+  background:var(--green-pale);
+  border:2px solid var(--green);
+  border-radius:12px;
+  padding:22px 16px;
+  font-size:0.92rem;font-weight:700;color:var(--green);
+  text-align:center;line-height:1.65;
+}
+.form-error{
+  display:none;
+  background:#FDECEC;
+  border:2px solid var(--red);
+  border-radius:12px;
+  padding:13px 16px;
+  font-size:0.82rem;font-weight:700;color:var(--red);
+  text-align:center;line-height:1.6;
+  margin-bottom:12px;
+}
+.form-error a{color:var(--red)}
 .form-reassure{
   display:flex;justify-content:center;gap:16px;margin-top:12px;flex-wrap:wrap;
 }
@@ -518,11 +539,33 @@ footer ul a:hover{color:var(--sun)}
 
       <p class="form-title">Get your free offer today</p>
       <p class="form-sub">No strings attached &mdash; ever.</p>
-      <div class="f"><input type="text" placeholder="🏠  Property address"/></div>
-      <div class="f"><input type="text" placeholder="👤  Your name"/></div>
-      <div class="f"><input type="tel" placeholder="📞  Phone number"/></div>
-      <div class="f"><input type="email" placeholder="✉️  Email address"/></div>
-      <button class="f-submit">Send My Free Cash Offer →</button>
+
+      <!-- Success message (hidden until form is submitted) -->
+      <div class="form-success" id="formSuccess">
+        🎉 <strong>Request received!</strong><br>
+        We'll send your free cash offer within 24 hours. Keep an eye on your phone &amp; inbox!
+      </div>
+
+      <!-- WORKING FORM — submits via Web3Forms, no backend needed -->
+      <form id="offerForm" action="https://api.web3forms.com/submit" method="POST">
+        <input type="hidden" name="access_key" value="4cdf39a4-54cd-4da6-8e65-653c96057c61">
+        <input type="hidden" name="subject" value="🏠 New Cash Offer Lead — Next Door Garcia LLC">
+        <input type="hidden" name="from_name" value="Next Door Garcia Website">
+        <!-- Honeypot anti-spam (bots tick this, humans never see it) -->
+        <input type="checkbox" name="botcheck" style="display:none" tabindex="-1" autocomplete="off">
+
+        <!-- Error message (hidden unless something goes wrong) -->
+        <div class="form-error" id="formError">
+          ⚠️ Something went wrong. Please try again — or call us at <a href="tel:7139224126">(713) 922-4126</a>.
+        </div>
+
+        <div class="f"><input type="text" name="address" placeholder="🏠  Property address" required/></div>
+        <div class="f"><input type="text" name="name" placeholder="👤  Your name" required/></div>
+        <div class="f"><input type="tel" name="phone" placeholder="📞  Phone number" required/></div>
+        <div class="f"><input type="email" name="email" placeholder="✉️  Email address" required/></div>
+        <button type="submit" class="f-submit">Send My Free Cash Offer →</button>
+      </form>
+
       <div class="form-reassure">
         <span class="reassure">Private</span>
         <span class="reassure">No obligation</span>
@@ -684,6 +727,43 @@ footer ul a:hover{color:var(--sun)}
     <div class="footer-states">TX &middot; FL &middot; CO &middot; AZ &middot; WA &middot; NC &middot; OH</div>
   </div>
 </footer>
+
+<script>
+  // Submit the form in the background (AJAX) — no redirect, no page reload.
+  // Works the same whether the page is opened locally or hosted on Vercel.
+  var offerForm = document.getElementById('offerForm');
+  var successBox = document.getElementById('formSuccess');
+  var errorBox = document.getElementById('formError');
+
+  offerForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    var btn = offerForm.querySelector('.f-submit');
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+    errorBox.style.display = 'none';
+
+    fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      body: new FormData(offerForm)
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (data.success) {
+          offerForm.style.display = 'none';
+          successBox.style.display = 'block';
+          successBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          throw new Error(data.message || 'Submission failed');
+        }
+      })
+      .catch(function () {
+        errorBox.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Send My Free Cash Offer →';
+      });
+  });
+</script>
 
 </body>
 </html>
